@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azhar's Cloud Application</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="text"] { padding: 10px; width: calc(100% - 100px); border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .edit-btn { background-color: #ffc107; color: black; padding: 5px 10px; font-size: 14px; margin-right: 5px;}
+        .edit-btn:hover { background-color: #e0a800; }
+        .delete-btn { background-color: #dc3545; padding: 5px 10px; font-size: 14px;}
+        .delete-btn:hover { background-color: #c82333; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #e9ecef; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <h2>Cloud Computing CRUD App</h2>
+
+    <div class="card">
+        <h3>Create New User</h3>
+        <input type="text" id="name" placeholder="Enter user name...">
+        <button onclick="addUser()">Add User</button>
+    </div>
+
+    <div class="card">
+        <h3>Database Records</h3>
+        <button onclick="getUsers()">Refresh Users</button>
+        <ul id="list"></ul>
+    </div>
+
+<script>
+    const backendUrl = `http://${window.location.hostname}:5000`;
+
+    // CREATE
+    function addUser() {
+        const nameInput = document.getElementById("name");
+        const nameValue = nameInput.value;
+        if (!nameValue) return alert("Please enter a name");
+
+        fetch(`${backendUrl}/add`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name: nameValue})
+        })
+        .then(() => {
+            nameInput.value = ""; 
+            getUsers(); 
+        })
+        .catch(err => alert("Error connecting to server."));
+    }
+
+    // READ
+    function getUsers() {
+        fetch(`${backendUrl}/users`)
+        .then(res => res.json())
+        .then(data => {
+            let list = document.getElementById("list");
+            list.innerHTML = "";
+            data.forEach(user => {
+                const id = user[0];
+                const name = user[1];
+                list.innerHTML += `
+                    <li>
+                        <span>👤 ${name}</span>
+                        <div>
+                            <button class="edit-btn" onclick="updateUser(${id}, '${name}')">Edit</button>
+                            <button class="delete-btn" onclick="deleteUser(${id})">Delete</button>
+                        </div>
+                    </li>`;
+            });
+        })
+        .catch(err => console.error("Error fetching users:", err));
+    }
+
+    // UPDATE
+    function updateUser(id, currentName) {
+        const newName = prompt("Edit user name:", currentName);
+        if (newName && newName.trim() !== "" && newName !== currentName) {
+            fetch(`${backendUrl}/update`, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({id: id, name: newName.trim()})
+            })
+            .then(() => getUsers())
+            .catch(err => alert("Error updating user."));
+        }
+    }
+
+    // DELETE
+    function deleteUser(id) {
+        if (confirm("Are you sure you want to delete this user?")) {
+            fetch(`${backendUrl}/delete`, {
+                method: "DELETE",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({id: id})
+            })
+            .then(() => getUsers())
+            .catch(err => alert("Error deleting user."));
+        }
+    }
+
+    // Load users on startup
+    window.onload = getUsers;
+</script>
+
+</body>
+</html>
